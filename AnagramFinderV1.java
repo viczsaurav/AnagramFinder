@@ -112,7 +112,6 @@ public class AnagramFinderV1 {
 
 		for (String anagram: allAnagrams){
 			if(dictionary.contains(anagram)){
-				System.out.println("Found: "+ anagram);
 				foundAnagrams.add(anagram);
 			}
 		}
@@ -138,7 +137,6 @@ public class AnagramFinderV1 {
 		Set<String> allPermutations = new HashSet<>();
 		for (String str: allPermutationsExceptLastString){
 			for(int position=0; position<=stringExceptLastChar.length();position++){
-				// e.g cats => add s to cat => [s + cat, c + s + at,  ca + s + t, cat + s]
 				String permutation = str.substring(0,position) + lastCharOfString + str.substring(position);
 				allPermutations.add(permutation);
 			}
