@@ -27,9 +27,10 @@ public class AnagramFinderV2 {
 
 	private static final String EXIT_STR = "EXIT";
 
-	private static final Map<String, List<String>> dictionary =  new ConcurrentHashMap<>();
+	private static final Map<Long, List<String>> dictionary =  new ConcurrentHashMap<>();
 	private static Pattern validStringPattern;
 
+	// Constructor
 	public AnagramFinderV2(String fileName) throws Exception{
 		validStringPattern = Pattern.compile("^[a-zAA-Z]*");
 		readDictionary(fileName, validStringPattern);
@@ -52,7 +53,7 @@ public class AnagramFinderV2 {
 				if(!isValidString(input, validStringPattern)){
 					System.out.println("Enter valid input, skipping...");
 				} else if (!input.equalsIgnoreCase(EXIT_STR)){
-					finder.processInput(input);
+					finder.findAnagrams(input);
 				} else {
 					break;
 				}
@@ -63,6 +64,8 @@ public class AnagramFinderV2 {
 
 	/**
 	 * Read dictionary and populate the set
+	 * Time complexity: O(MN) where N = number of words, M = length of words
+	 * Space Complexity: O(N+M)
 	 * @param fileName
 	 * @throws IOException
 	 */
@@ -79,7 +82,7 @@ public class AnagramFinderV2 {
 			lines.parallel()
 							.filter(word -> isValidString(word, validStringPattern))
 							.map(String::toLowerCase)
-							.forEach(word -> dictionary.compute(sortString(word),
+							.forEach(word -> dictionary.compute(getStringIdentifier(word),
 											(k,v) -> (v==null)? new ArrayList<>():v)
 											.add(word));
 		}
@@ -90,17 +93,11 @@ public class AnagramFinderV2 {
 		displayExecutionTime("Dictionary Loaded", startTime);
 	}
 
-	private static String sortString(String input){
-		char[] chars = input.toCharArray();
-		Arrays.sort(chars);
-		return new String(chars);
-	}
-
 	/**
 	 * Process each user input string
 	 * @param word
 	 */
-	private void processInput(String word) {
+	private void findAnagrams(String word) {
 		long startTime = System.currentTimeMillis();
 		List<String> foundAnagrams = this.fetchAnagramsFromDictionary(word);
 		displayExecutionTime(foundAnagrams.size() + " Anagrams found for " + word, startTime);
@@ -109,12 +106,14 @@ public class AnagramFinderV2 {
 
 	/**
 	 * fetch all found anagrams from the dictionary
+	 * Time complexity: O(M)
+	 * 
 	 * @param word String
 	 * @return boolean
 	 */
 	private List<String> fetchAnagramsFromDictionary(String word){
-		String sortedword = sortString(word);
-		List<String> foundWords = dictionary.get(sortedword);
+		long identifier = getStringIdentifier(word);
+		List<String> foundWords = dictionary.get(identifier);
 		return foundWords!=null? foundWords: new ArrayList<>();
 	}
 
@@ -127,6 +126,24 @@ public class AnagramFinderV2 {
 	private static boolean isValidString(String word, Pattern validStringPattern){
 		Matcher matcher = validStringPattern.matcher(word);
 		return (word.length()>0 && matcher.matches());
+    }
+    
+    /**
+     * Converts each string to long indetifier O(M)
+     * @param word
+     * @return
+     */
+	private static long getStringIdentifier(String word){
+		int[] primeArray = new int[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31,
+						37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103,
+						107, 109, 113 };
+        
+    // Lowercase a has ASCII value 97 in decimal .So for z ,the value is 122 in decimal.
+		long product=1;
+		for(int ch: word.toCharArray()){
+			product *= primeArray[ch-'a'];
+		}
+		return product;
 	}
 
 	/**
