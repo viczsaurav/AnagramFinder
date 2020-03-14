@@ -1,6 +1,10 @@
 import java.io.*;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Stream;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -60,32 +64,31 @@ public class AnagramFinderV2 {
 		if(args.length<1){
 			throw new IllegalArgumentException("Please provide the input dictionary..");
 		}
-
-		URL path = AnagramFinderV2.class.getResource(args[0]);
+		Path path = Paths.get(args[0]);
 		if(path==null) {
 			throw new FileNotFoundException("Cannot find file in current folder: "+ args[0]);
 		}
-		File f = new File(path.getFile());
-		String st;
 		long startTime = System.currentTimeMillis();
-		try(BufferedReader reader = new BufferedReader(new FileReader(f));){
-			while ((st = reader.readLine()) != null) {
-				if(st.split(" ").length>1){
-					System.out.println("Multi-word not supported: ["+ st + "], skipping...");
-				} else {
-					dictionary.compute(sortString(st).toLowerCase(),
-									(k,v) -> (v==null)? new ArrayList<>():v)
-									.add(st.toLowerCase());
-				}
-            }
-            System.out.println(dictionary.size());
-			// dictionary.entrySet().forEach(entry-> System.out.println(entry.getKey()+"->"+ entry.getValue()));
-		}
+		try(Stream<String> lines = Files.lines(path)){
+            lines.parallel()
+                 .map(String::toLowerCase)
+				 .forEach(word -> {
+                    if(word.split(" ").length>1){
+                        System.out.println("Multi-word not supported: ["+ word + "], skipping...");
+                    } else {
+                        dictionary.compute(sortString(word),
+                                        (k,v) -> (v==null)? new ArrayList<>():v)
+                                        .add(word);
+                    }
+                });
+        }
 		catch(IOException e){
 			System.out.println("Error while processing dictionary file: "+ e.getMessage());
 			throw e;
 		}
-		displayExecutionTime("Dictionary Loaded", startTime);
+        displayExecutionTime("Dictionary Loaded", startTime);
+        // System.out.println(dictionary.size());
+        // dictionary.entrySet().forEach(e -> System.out.println(e.getKey()+"->"+e.getValue()));
 	}
 
 	private static String sortString(String input){
