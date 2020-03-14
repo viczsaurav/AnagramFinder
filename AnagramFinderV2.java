@@ -80,11 +80,11 @@ public class AnagramFinderV2 {
 		// Processing dictionary
 		try(Stream<String> lines = Files.lines(path)){
 			lines.parallel()
-							.filter(word -> isValidString(word, validStringPattern))
-							.map(String::toLowerCase)
-							.forEach(word -> dictionary.compute(getStringIdentifier(word),
-											(k,v) -> (v==null)? new ArrayList<>():v)
-											.add(word));
+					.filter(word -> isValidString(word, validStringPattern))
+					.map(String::toLowerCase)
+					.forEach(word -> dictionary.compute(getStringIdentifier(word),
+									(k,v) -> (v==null)? new ArrayList<>():v)
+									.add(word));
 		}
 		catch(IOException e){
 			System.out.println("Error while processing dictionary file: "+ e.getMessage());
