@@ -1,6 +1,9 @@
 import java.io.*;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Method - 1
@@ -19,7 +22,7 @@ import java.util.*;
  *  - Return and print the found anagrams.
  */
 
-public class AnagramFinder {
+public class AnagramFinderV1 {
 
 	private static final Set<String> dictionary =  new HashSet<>();
 	private static final String EXIT_STR = "EXIT";
@@ -63,23 +66,24 @@ public class AnagramFinder {
 			throw new IllegalArgumentException("Please provide the input dictionary..");
 		}
 
-		URL path = AnagramFinder.class.getResource(args[0]);
+		Path path = Paths.get(args[0]);
 		if(path==null) {
 			throw new FileNotFoundException("Cannot find file in current folder: "+ args[0]);
 		}
-		File f = new File(path.getFile());
-		String st;
+		
 		long startTime = System.currentTimeMillis();
-		try(BufferedReader reader = new BufferedReader(new FileReader(f));){
-			while ((st = reader.readLine()) != null) {
-				if(st.split(" ").length>1){
-					System.out.println("Multi-word not supported: ["+ st + "], skipping...");
-				} else {
-					dictionary.add(st.toLowerCase());
-				}
-			}
-		}
+		try(Stream<String> lines = Files.lines(path)){
+            lines.map(String::toLowerCase)
+				 .forEach(word -> {
+                    if(word.split(" ").length>1){
+                        System.out.println("Multi-word not supported: ["+ word + "], skipping...");
+                    } else {
+                        dictionary.add(word);
+                    }
+                });
+        }
 		catch(IOException e){
+			System.out.println("Error while processing dictionary file: "+ e.getMessage());
 			throw e;
 		}
 		displayExecutionTime("Dictionary Loaded", startTime);
@@ -104,9 +108,11 @@ public class AnagramFinder {
 	private static List<String> fetchAnagramsFromDictionary(String word){
 		List<String> foundAnagrams = new ArrayList<>();
 		Set<String> allAnagrams = getAllAnagramsForWord(word);
+		// allAnagrams.forEach(System.out::println);
 
 		for (String anagram: allAnagrams){
 			if(dictionary.contains(anagram)){
+				System.out.println("Found: "+ anagram);
 				foundAnagrams.add(anagram);
 			}
 		}
