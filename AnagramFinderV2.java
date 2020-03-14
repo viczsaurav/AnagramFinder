@@ -1,19 +1,21 @@
-import java.io.*;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Stream;
-
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * This java program lets you find all Anagrams of an input string present in the dictionary.
  *
  * The assumption here is:
- *  - Distributed
  *  - High usage
  *  - Multi-word lines in dictionary must be skipped
+ *  - No special characters, digits and spaces allowed
  *
  *
  * Due to above assumptions, in the current approach:
@@ -23,15 +25,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AnagramFinderV2 {
 
-	private static final Map<String, List<String>> dictionary =  new ConcurrentHashMap<>();
 	private static final String EXIT_STR = "EXIT";
 
+	private static final Map<String, List<String>> dictionary =  new ConcurrentHashMap<>();
+	private static Pattern validStringPattern;
+
+	public AnagramFinderV2(String fileName) throws Exception{
+		validStringPattern = Pattern.compile("^[a-zAA-Z]*");
+		readDictionary(fileName, validStringPattern);
+	}
+
 	public static void main(String[] args) throws Exception{
-
 		System.out.println("\nWelcome to the Anagram Finder V2\n--------------------------------");
-
-		// Populate the dictionary Set
-		readDictionary(args);
+		if(args.length<1){
+			throw new IllegalArgumentException("Please provide the input dictionary..");
+		}
+		AnagramFinderV2 finder = new AnagramFinderV2(args[0]);
 
 		// User input
 		try (Scanner scanner = new Scanner(System.in)) {
@@ -40,12 +49,10 @@ public class AnagramFinderV2 {
 				System.out.print("\nAnagramFinderV2> ");
 				input = scanner.nextLine();  // Read user input
 
-				if(input.length()==0 || input.split(" ").length>1){
+				if(!isValidString(input, validStringPattern)){
 					System.out.println("Enter valid input, skipping...");
-					continue;
-				}
-				if (!input.equalsIgnoreCase(EXIT_STR)){
-					processInput(input);
+				} else if (!input.equalsIgnoreCase(EXIT_STR)){
+					finder.processInput(input);
 				} else {
 					break;
 				}
@@ -56,39 +63,31 @@ public class AnagramFinderV2 {
 
 	/**
 	 * Read dictionary and populate the set
-	 * @param args
-	 * @throws FileNotFoundException
-	 * @throws Exception
+	 * @param fileName
+	 * @throws IOException
 	 */
-	private static void readDictionary(String[] args) throws IOException {
-		if(args.length<1){
-			throw new IllegalArgumentException("Please provide the input dictionary..");
-		}
-		Path path = Paths.get(args[0]);
-		if(path==null) {
-			throw new FileNotFoundException("Cannot find file in current folder: "+ args[0]);
-		}
+	private static void readDictionary(String fileName, Pattern validStringPattern) throws IOException {
 		long startTime = System.currentTimeMillis();
+
+		Path path = Paths.get(fileName);
+		if(path==null) {
+			throw new FileNotFoundException("Cannot find file in current folder: "+ fileName);
+		}
+
+		// Processing dictionary
 		try(Stream<String> lines = Files.lines(path)){
-            lines.parallel()
-                 .map(String::toLowerCase)
-				 .forEach(word -> {
-                    if(word.split(" ").length>1){
-                        System.out.println("Multi-word not supported: ["+ word + "], skipping...");
-                    } else {
-                        dictionary.compute(sortString(word),
-                                        (k,v) -> (v==null)? new ArrayList<>():v)
-                                        .add(word);
-                    }
-                });
-        }
+			lines.parallel()
+							.filter(word -> isValidString(word, validStringPattern))
+							.map(String::toLowerCase)
+							.forEach(word -> dictionary.compute(sortString(word),
+											(k,v) -> (v==null)? new ArrayList<>():v)
+											.add(word));
+		}
 		catch(IOException e){
 			System.out.println("Error while processing dictionary file: "+ e.getMessage());
 			throw e;
 		}
-        displayExecutionTime("Dictionary Loaded", startTime);
-        // System.out.println(dictionary.size());
-        // dictionary.entrySet().forEach(e -> System.out.println(e.getKey()+"->"+e.getValue()));
+		displayExecutionTime("Dictionary Loaded", startTime);
 	}
 
 	private static String sortString(String input){
@@ -101,22 +100,33 @@ public class AnagramFinderV2 {
 	 * Process each user input string
 	 * @param word
 	 */
-	private static void processInput(String word) {
+	private void processInput(String word) {
 		long startTime = System.currentTimeMillis();
-		List<String> foundAnagrams = fetchAnagramsFromDictionary(word);
+		List<String> foundAnagrams = this.fetchAnagramsFromDictionary(word);
 		displayExecutionTime(foundAnagrams.size() + " Anagrams found for " + word, startTime);
 		System.out.println(String.join(",", foundAnagrams));
 	}
 
 	/**
 	 * fetch all found anagrams from the dictionary
-	 * @param word
-	 * @return
+	 * @param word String
+	 * @return boolean
 	 */
-	private static List<String> fetchAnagramsFromDictionary(String word){
+	private List<String> fetchAnagramsFromDictionary(String word){
 		String sortedword = sortString(word);
 		List<String> foundWords = dictionary.get(sortedword);
 		return foundWords!=null? foundWords: new ArrayList<>();
+	}
+
+	/**
+	 * Validating String : No space, special characters and digit
+	 * @param word
+	 * @param validStringPattern
+	 * @return
+	 */
+	private static boolean isValidString(String word, Pattern validStringPattern){
+		Matcher matcher = validStringPattern.matcher(word);
+		return (word.length()>0 && matcher.matches());
 	}
 
 	/**
@@ -126,7 +136,6 @@ public class AnagramFinderV2 {
 	 */
 	private static void displayExecutionTime(String activity, long startTime) {
 		long finishTime = System.currentTimeMillis();
-		double elapsedTime = (finishTime - startTime);
-		System.out.println(activity +" in " + elapsedTime + " ms");
+		System.out.println(activity +" in " + (finishTime - startTime) + " ms");
 	}
 }
