@@ -5,8 +5,8 @@ Find all anagrams of a given input string present in a dictionary(distributed)
 
 #### Version 1:
 ```
-javac AnagramFinderV2.java
-java AnagramFinderV2 words_alpha.txt
+javac AnagramFinderV1.java
+java AnagramFinderV1 words_alpha.txt
 
 ```
 #### Version 2:
