@@ -21,6 +21,20 @@ import java.util.stream.Stream;
  * Due to above assumptions, in the current approach:
  *  - We save all dictionary words in a HashMap with Key => Hash(string) and Value => List<String>
  *  - Return and print the found anagrams.
+ *
+ * ------------------*
+ * Time Complexity: -*
+* -------------------*
+ * Dictionary Population : O(N*M) N = number of words in dictionary, M is max length word
+ *  forEach word:(N Words)
+ *   -- calculate identifier (O(M))
+ *   -- Get Value List from Map if exists(O(1))
+ *   -- Add new Value in List(O(1))
+ *
+ * Search: O(Max(M,N)) N = number of words in dictionary, M is max length word
+ *   -- Get identifier(O(M))
+ *   -- Retrieve list from Map(O(1))
+ *   -- Print String.join(",", list) (O(K)) where k= number of words, max K=N
  */
 
 public class AnagramFinderV2 {
